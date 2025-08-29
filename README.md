@@ -15,6 +15,7 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 - **Python** - Using PydanticAI for easy model orchestration
 - **Node.js** - Using AWS SDK for JavaScript/TypeScript environments  
 - **C++** - Native AWS SDK integration for high-performance scenarios
+- **Go** - Using AWS SDK for Go v2 with context management
 
 ### 📋 **Planned** (See [TODO.md](TODO.md))
 - **Go** - Cloud-native with concurrent processing
@@ -35,8 +36,10 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 ├── game_development_pipeline.py  # Python: 4-agent game development workflow
 ├── game_development_pipeline.js  # Node.js: 4-agent pipeline implementation
 ├── game_pipeline.cpp             # C++: High-performance pipeline implementation
+├── game_pipeline.go              # Go: Cloud-native pipeline implementation
 ├── package.json                  # Node.js dependencies
 ├── CMakeLists.txt                # CMake build configuration for C++
+├── go.mod                        # Go module dependencies
 ├── requirements.txt              # Python dependencies
 ├── TODO.md                       # Planned language implementations
 └── .env.example                  # Environment variables template
@@ -55,6 +58,11 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 ### Python Setup
 ```bash
 pip install -r requirements.txt
+```
+
+### Go Setup (Optional)
+```bash
+go mod tidy
 ```
 
 ### Node.js Setup (Optional)
@@ -103,6 +111,13 @@ python game_development_pipeline.py
 node game_development_pipeline.js
 ```
 
+### Go Examples
+
+**Game Development Pipeline:**
+```bash
+go run game_pipeline.go
+```
+
 **Simulation Mode (No API calls):**
 ```bash
 python simple_chaining_demo.py
@@ -113,6 +128,13 @@ python simple_chaining_demo.py
 ```bash
 npm install
 node game_development_pipeline.js
+```
+
+### Go Implementation
+
+```bash
+go mod tidy
+go run game_pipeline.go
 ```
 
 ### C++ Implementation
