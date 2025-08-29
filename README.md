@@ -17,6 +17,7 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 - **C++** - Native AWS SDK integration for high-performance scenarios
 - **Go** - Using AWS SDK for Go v2 with context management
 - **Java** - Using AWS SDK for Java v2 with async processing
+- **C#/.NET** - Using AWS SDK for .NET with async/await patterns
 
 ### 📋 **Planned** (See [TODO.md](TODO.md))
 - **Go** - Cloud-native with concurrent processing
@@ -39,10 +40,12 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 ├── game_pipeline.cpp             # C++: High-performance pipeline implementation
 ├── game_pipeline.go              # Go: Cloud-native pipeline implementation
 ├── game_pipeline.java            # Java: Enterprise pipeline implementation
+├── game_pipeline.cs              # C#/.NET: Cross-platform pipeline implementation
 ├── package.json                  # Node.js dependencies
 ├── CMakeLists.txt                # CMake build configuration for C++
 ├── go.mod                        # Go module dependencies
 ├── pom.xml                       # Maven dependencies for Java
+├── game_pipeline.csproj          # .NET project file with NuGet dependencies
 ├── requirements.txt              # Python dependencies
 ├── TODO.md                       # Planned language implementations
 └── .env.example                  # Environment variables template
@@ -61,6 +64,12 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 ### Python Setup
 ```bash
 pip install -r requirements.txt
+```
+
+### C#/.NET Setup (Optional)
+```bash
+dotnet restore
+dotnet build
 ```
 
 ### Java Setup (Optional)
@@ -119,6 +128,13 @@ python game_pipeline.py
 node game_pipeline.js
 ```
 
+### C#/.NET Examples
+
+**Game Development Pipeline:**
+```bash
+dotnet run
+```
+
 ### Java Examples
 
 **Game Development Pipeline:**
@@ -143,6 +159,13 @@ python simple_chaining_demo.py
 ```bash
 npm install
 node game_pipeline.js
+```
+
+### C#/.NET Implementation
+
+```bash
+dotnet restore
+dotnet run
 ```
 
 ### Java Implementation

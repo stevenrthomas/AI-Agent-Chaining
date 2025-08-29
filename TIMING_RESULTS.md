@@ -305,6 +305,37 @@ This document presents comprehensive timing results from running the AWS Bedrock
 
 ---
 
+## 🔷 C#/.NET Implementation Results
+
+**Runtime:** TBD (Pending Test Execution)
+
+### Stage-by-Stage Breakdown:
+| Stage | Model | Duration | Status |
+|-------|--------|----------|--------|
+| **Architecture** | Claude Sonnet | TBD | ⏳ PENDING |
+| **Development** | Claude Haiku | TBD | ⏳ PENDING |
+| **Testing** | Nova Lite | TBD | ⏳ PENDING |
+| **Documentation** | Titan Express | TBD | ⏳ PENDING |
+
+### Performance Characteristics:
+- **Fastest Stage:** TBD
+- **Slowest Stage:** TBD
+- **Average Stage Time:** TBD
+- **Success Rate:** TBD
+
+### Key Features:
+- Native async/await patterns with Task-based execution
+- AWS SDK for .NET integration
+- .NET 8 with modern C# language features
+- High-precision timing using `DateTime.UtcNow`
+- Comprehensive error handling with detailed failure reporting
+- Environment variable management with dotenv.net
+- Cross-platform compatibility (Windows, Linux, macOS)
+
+*Note: C#/.NET implementation completed but pending test execution to capture timing data.*
+
+---
+
 ## 📈 Statistical Summary
 
 | Metric | C++ | Python | Node.js | Go | Java |
