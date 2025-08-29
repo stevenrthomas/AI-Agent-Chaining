@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# Claude IDE settings (may contain sensitive data)
+.claude/
+
 # Python
 __pycache__/
 *.py[cod]
