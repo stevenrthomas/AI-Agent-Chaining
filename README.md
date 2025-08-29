@@ -7,6 +7,7 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 - **Multi-Model Chaining**: Chain different AWS Bedrock models (Claude, Nova, Titan) for specialized tasks
 - **Python Implementation**: Using PydanticAI for easy model orchestration
 - **C++ Implementation**: Native AWS SDK integration for high-performance scenarios
+- **Node.js Implementation**: Using AWS SDK for JavaScript/TypeScript environments
 - **Game Development Pipeline**: 4-stage pipeline (Architect → Developer → Tester → Documenter)
 - **Content Pipeline**: 3-stage content creation and editing workflow
 
@@ -18,7 +19,9 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 ├── model_chaining.py             # Basic 2-model chaining example
 ├── simple_chaining_demo.py       # Simulation without API calls
 ├── game_development_pipeline.py  # 4-agent game development workflow
+├── game_development_pipeline.js  # Node.js implementation of the pipeline
 ├── game_pipeline.cpp             # C++ implementation of the pipeline
+├── package.json                  # Node.js dependencies
 ├── CMakeLists.txt                # CMake build configuration
 ├── requirements.txt              # Python dependencies
 └── .env.example                  # Environment variables template
@@ -37,6 +40,11 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 ### Python Setup
 ```bash
 pip install -r requirements.txt
+```
+
+### Node.js Setup (Optional)
+```bash
+npm install
 ```
 
 ### C++ Setup (Optional)
@@ -73,9 +81,23 @@ python advanced_chaining.py
 python game_development_pipeline.py
 ```
 
+### Node.js Examples
+
+**Game Development Pipeline:**
+```bash
+node game_development_pipeline.js
+```
+
 **Simulation Mode (No API calls):**
 ```bash
 python simple_chaining_demo.py
+```
+
+### Node.js Implementation
+
+```bash
+npm install
+node game_development_pipeline.js
 ```
 
 ### C++ Implementation
