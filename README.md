@@ -5,11 +5,25 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 ## Features
 
 - **Multi-Model Chaining**: Chain different AWS Bedrock models (Claude, Nova, Titan) for specialized tasks
-- **Python Implementation**: Using PydanticAI for easy model orchestration
-- **C++ Implementation**: Native AWS SDK integration for high-performance scenarios
-- **Node.js Implementation**: Using AWS SDK for JavaScript/TypeScript environments
+- **Multi-Language Support**: Implementations in Python, Node.js, C++, and more
 - **Game Development Pipeline**: 4-stage pipeline (Architect → Developer → Tester → Documenter)
 - **Content Pipeline**: 3-stage content creation and editing workflow
+
+## Supported Languages
+
+### ✅ **Implemented**
+- **Python** - Using PydanticAI for easy model orchestration
+- **Node.js** - Using AWS SDK for JavaScript/TypeScript environments  
+- **C++** - Native AWS SDK integration for high-performance scenarios
+
+### 📋 **Planned** (See [TODO.md](TODO.md))
+- **Go** - Cloud-native with concurrent processing
+- **Java** - Enterprise-ready with Spring Boot integration
+- **C#/.NET** - Cross-platform .NET implementation
+- **Rust** - Memory-safe, high-performance
+- **PHP** - Web development focused
+- **Ruby** - Developer-friendly syntax
+- **Swift** - Apple ecosystem integration
 
 ## Project Structure
 
@@ -18,12 +32,13 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 ├── bedrock_models.py             # List available Bedrock models
 ├── model_chaining.py             # Basic 2-model chaining example
 ├── simple_chaining_demo.py       # Simulation without API calls
-├── game_development_pipeline.py  # 4-agent game development workflow
-├── game_development_pipeline.js  # Node.js implementation of the pipeline
-├── game_pipeline.cpp             # C++ implementation of the pipeline
+├── game_development_pipeline.py  # Python: 4-agent game development workflow
+├── game_development_pipeline.js  # Node.js: 4-agent pipeline implementation
+├── game_pipeline.cpp             # C++: High-performance pipeline implementation
 ├── package.json                  # Node.js dependencies
-├── CMakeLists.txt                # CMake build configuration
+├── CMakeLists.txt                # CMake build configuration for C++
 ├── requirements.txt              # Python dependencies
+├── TODO.md                       # Planned language implementations
 └── .env.example                  # Environment variables template
 ```
 
