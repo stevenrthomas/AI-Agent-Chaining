@@ -11,11 +11,24 @@ load_dotenv()
 region = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
 print(f"Using region: {region}")
 
-# Initialize 4 specialized Bedrock models
-claude_sonnet = BedrockConverseModel('anthropic.claude-3-sonnet-20240229-v1:0')
-claude_haiku = BedrockConverseModel('anthropic.claude-3-haiku-20240307-v1:0')
-nova_lite = BedrockConverseModel('amazon.nova-lite-v1:0')
-titan_express = BedrockConverseModel('amazon.titan-text-express-v1')
+# Initialize 4 specialized Bedrock models with .env configuration support
+# Fallback to hardcoded defaults if not specified in .env
+architecture_model = os.getenv('ARCHITECTURE_MODEL', 'anthropic.claude-3-sonnet-20240229-v1:0')
+development_model = os.getenv('DEVELOPMENT_MODEL', 'anthropic.claude-3-haiku-20240307-v1:0')
+testing_model = os.getenv('TESTING_MODEL', 'amazon.nova-lite-v1:0')
+documentation_model = os.getenv('DOCUMENTATION_MODEL', 'amazon.titan-text-express-v1')
+
+print(f"Model Configuration:")
+print(f"  Architecture: {architecture_model}")
+print(f"  Development:  {development_model}")
+print(f"  Testing:      {testing_model}")
+print(f"  Documentation: {documentation_model}")
+print()
+
+claude_sonnet = BedrockConverseModel(architecture_model)
+claude_haiku = BedrockConverseModel(development_model)
+nova_lite = BedrockConverseModel(testing_model)
+titan_express = BedrockConverseModel(documentation_model)
 
 # Agent 1: Architect - Design the game structure
 architect_agent = Agent(

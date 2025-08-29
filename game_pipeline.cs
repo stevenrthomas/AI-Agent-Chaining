@@ -1,6 +1,8 @@
 using Amazon.BedrockRuntime;
 using Amazon.BedrockRuntime.Model;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using dotenv.net;
 
 namespace AiAgentChaining
@@ -22,44 +24,139 @@ namespace AiAgentChaining
         {
             try
             {
-                var messages = new List<Message>
+                var requestJson = new JsonObject();
+                
+                // Build request based on model type
+                if (_modelId.Contains("anthropic.claude"))
                 {
-                    new Message
+                    // Claude request format
+                    requestJson["anthropic_version"] = "bedrock-2023-05-31";
+                    requestJson["max_tokens"] = 4000;
+                    
+                    var messages = new JsonArray
                     {
-                        Role = ConversationRole.User,
-                        Content = new List<ContentBlock>
+                        new JsonObject
                         {
-                            new ContentBlock { Text = userInput }
+                            ["role"] = "user",
+                            ["content"] = userInput
                         }
+                    };
+                    requestJson["messages"] = messages;
+                    
+                    if (!string.IsNullOrEmpty(_systemPrompt))
+                    {
+                        requestJson["system"] = _systemPrompt;
                     }
-                };
-
-                var request = new ConverseRequest
+                }
+                else if (_modelId.Contains("amazon.titan"))
+                {
+                    // Titan request format
+                    requestJson["inputText"] = userInput;
+                    
+                    var config = new JsonObject
+                    {
+                        ["maxTokenCount"] = 4000,
+                        ["temperature"] = 0.7
+                    };
+                    requestJson["textGenerationConfig"] = config;
+                }
+                else if (_modelId.Contains("amazon.nova"))
+                {
+                    // Nova Lite request format with required parameters
+                    var messages = new JsonArray
+                    {
+                        new JsonObject
+                        {
+                            ["role"] = "user",
+                            ["content"] = new JsonArray
+                            {
+                                new JsonObject
+                                {
+                                    ["text"] = userInput
+                                }
+                            }
+                        }
+                    };
+                    requestJson["messages"] = messages;
+                    
+                    // Nova Lite specific configuration
+                    var inferenceConfig = new JsonObject
+                    {
+                        ["maxTokens"] = 4000,
+                        ["temperature"] = 0.7
+                    };
+                    requestJson["inferenceConfig"] = inferenceConfig;
+                    
+                    if (!string.IsNullOrEmpty(_systemPrompt))
+                    {
+                        var system = new JsonArray
+                        {
+                            new JsonObject
+                            {
+                                ["text"] = _systemPrompt
+                            }
+                        };
+                        requestJson["system"] = system;
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Unsupported model: {_modelId}");
+                }
+                
+                // Create InvokeModel request
+                var request = new InvokeModelRequest
                 {
                     ModelId = _modelId,
-                    Messages = messages
+                    ContentType = "application/json",
+                    Body = new MemoryStream(Encoding.UTF8.GetBytes(requestJson.ToJsonString()))
                 };
-
-                if (!string.IsNullOrEmpty(_systemPrompt))
+                
+                // Invoke the model
+                var response = await _client.InvokeModelAsync(request);
+                
+                // Parse response
+                using var reader = new StreamReader(response.Body);
+                var responseBody = await reader.ReadToEndAsync();
+                var responseJson = JsonNode.Parse(responseBody);
+                
+                // Extract content based on model type
+                if (_modelId.Contains("anthropic.claude"))
                 {
-                    request.System = new List<SystemContentBlock>
+                    var content = responseJson?["content"];
+                    if (content != null && content.AsArray().Count > 0)
                     {
-                        new SystemContentBlock { Text = _systemPrompt }
-                    };
-                }
-
-                var response = await _client.ConverseAsync(request);
-
-                if (response.Output?.Message?.Content?.Count > 0)
-                {
-                    var content = response.Output.Message.Content[0];
-                    if (!string.IsNullOrEmpty(content.Text))
-                    {
-                        return content.Text;
+                        return content[0]?["text"]?.GetValue<string>() ?? "";
                     }
                 }
-
-                throw new InvalidOperationException("Empty response from model");
+                else if (_modelId.Contains("amazon.titan"))
+                {
+                    // Titan Express returns response in results[0].outputText structure
+                    var results = responseJson?["results"];
+                    if (results != null && results.AsArray().Count > 0)
+                    {
+                        return results[0]?["outputText"]?.GetValue<string>() ?? "";
+                    }
+                }
+                else if (_modelId.Contains("amazon.nova"))
+                {
+                    // Nova Lite returns response in output.message.content structure
+                    var output = responseJson?["output"];
+                    if (output != null)
+                    {
+                        var message = output["message"];
+                        if (message != null)
+                        {
+                            var content = message["content"];
+                            if (content != null && content.AsArray().Count > 0)
+                            {
+                                return content[0]?["text"]?.GetValue<string>() ?? "";
+                            }
+                        }
+                    }
+                }
+                
+                throw new InvalidOperationException("No content in response");
             }
             catch (Exception ex)
             {
@@ -106,18 +203,27 @@ namespace AiAgentChaining
             var pipelineStart = DateTime.UtcNow;
             var timings = new List<StageResult>();
 
+            // Get model configurations from environment variables with fallback defaults
+            string architectureModel = Environment.GetEnvironmentVariable("ARCHITECTURE_MODEL") ?? "anthropic.claude-3-sonnet-20240229-v1:0";
+            string developmentModel = Environment.GetEnvironmentVariable("DEVELOPMENT_MODEL") ?? "anthropic.claude-3-haiku-20240307-v1:0";
+            string testingModel = Environment.GetEnvironmentVariable("TESTING_MODEL") ?? "amazon.nova-lite-v1:0";
+            string documentationModel = Environment.GetEnvironmentVariable("DOCUMENTATION_MODEL") ?? "amazon.titan-text-express-v1";
+            
+            Console.WriteLine("Model Configuration:");
+            Console.WriteLine($"  Architecture: {architectureModel}");
+            Console.WriteLine($"  Development:  {developmentModel}");
+            Console.WriteLine($"  Testing:      {testingModel}");
+            Console.WriteLine($"  Documentation: {documentationModel}");
+            Console.WriteLine();
+
             // Initialize agents
-            var architectAgent = new BedrockAgent(client,
-                "anthropic.claude-3-sonnet-20240229-v1:0",
+            var architectAgent = new BedrockAgent(client, architectureModel,
                 "You are a software architect. Create detailed technical specifications and architecture for software projects.");
-            var developerAgent = new BedrockAgent(client,
-                "anthropic.claude-3-haiku-20240307-v1:0",
+            var developerAgent = new BedrockAgent(client, developmentModel,
                 "You are a Python developer. Write clean, functional code based on specifications.");
-            var testerAgent = new BedrockAgent(client,
-                "amazon.nova-lite-v1:0",
+            var testerAgent = new BedrockAgent(client, testingModel,
                 "You are a QA engineer. Create comprehensive tests for code to ensure it works correctly.");
-            var documenterAgent = new BedrockAgent(client,
-                "amazon.titan-text-express-v1");
+            var documenterAgent = new BedrockAgent(client, documentationModel);
 
             try
             {

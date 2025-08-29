@@ -7,13 +7,26 @@
     <Nullable>enable</Nullable>
     <AssemblyName>GamePipeline</AssemblyName>
     <RootNamespace>AiAgentChaining</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.BedrockRuntime" Version="3.7.300.0" />
     <PackageReference Include="AWSSDK.Core" Version="3.7.300.0" />
     <PackageReference Include="dotenv.net" Version="3.1.3" />
-    <PackageReference Include="System.Text.Json" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="vcpkg\**" />
+    <Compile Remove="obj\**" />
+    <Compile Remove="bin\**" />
+    <EmbeddedResource Remove="vcpkg\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <EmbeddedResource Remove="bin\**" />
+    <None Remove="vcpkg\**" />
+    <None Remove="obj\**" />
+    <None Remove="bin\**" />
   </ItemGroup>
 
 </Project>

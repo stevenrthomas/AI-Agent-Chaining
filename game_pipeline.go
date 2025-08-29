@@ -88,6 +88,14 @@ type NovaContent struct {
 	Text string `json:"text"`
 }
 
+// getEnvOrDefault returns the environment variable value or default if not set/empty
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 type NovaResponse struct {
 	Content []NovaResponseContent `json:"content"`
 }
@@ -244,14 +252,27 @@ func main() {
 	// Create Bedrock Runtime client
 	client := bedrockruntime.NewFromConfig(cfg)
 
+	// Get model configurations from environment variables with fallback defaults
+	architectureModel := getEnvOrDefault("ARCHITECTURE_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0")
+	developmentModel := getEnvOrDefault("DEVELOPMENT_MODEL", "anthropic.claude-3-haiku-20240307-v1:0")
+	testingModel := getEnvOrDefault("TESTING_MODEL", "amazon.nova-lite-v1:0")
+	documentationModel := getEnvOrDefault("DOCUMENTATION_MODEL", "amazon.titan-text-express-v1")
+	
+	fmt.Println("Model Configuration:")
+	fmt.Printf("  Architecture: %s\n", architectureModel)
+	fmt.Printf("  Development:  %s\n", developmentModel)
+	fmt.Printf("  Testing:      %s\n", testingModel)
+	fmt.Printf("  Documentation: %s\n", documentationModel)
+	fmt.Println()
+
 	// Initialize agents
-	architectAgent := NewBedrockAgent(client, "anthropic.claude-3-sonnet-20240229-v1:0", 
+	architectAgent := NewBedrockAgent(client, architectureModel, 
 		"You are a software architect. Create detailed technical specifications and architecture for software projects.")
-	developerAgent := NewBedrockAgent(client, "anthropic.claude-3-haiku-20240307-v1:0",
+	developerAgent := NewBedrockAgent(client, developmentModel,
 		"You are a Python developer. Write clean, functional code based on specifications.")
-	testerAgent := NewBedrockAgent(client, "anthropic.claude-3-haiku-20240307-v1:0",
+	testerAgent := NewBedrockAgent(client, testingModel,
 		"You are a QA engineer. Create comprehensive tests for code to ensure it works correctly.")
-	documenterAgent := NewBedrockAgent(client, "amazon.titan-text-express-v1", "")
+	documenterAgent := NewBedrockAgent(client, documentationModel, "")
 
 	fmt.Println("\nStarting 4-Agent Game Development Pipeline...")
 	

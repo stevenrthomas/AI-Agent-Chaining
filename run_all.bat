@@ -9,6 +9,8 @@ echo 2. Node.js
 echo 3. C++
 echo 4. Go
 echo 5. Java
+echo 6. C#/.NET
+echo 7. Rust
 echo.
 echo Each implementation will be run sequentially with timing.
 echo Press any key to continue, or Ctrl+C to cancel...
@@ -45,9 +47,21 @@ call run_go.bat
 echo.
 
 echo =======================================================
-echo [5/5] RUNNING JAVA IMPLEMENTATION
+echo [5/6] RUNNING JAVA IMPLEMENTATION
 echo =======================================================
 call run_java.bat
+echo.
+
+echo =======================================================
+echo [6/7] RUNNING C#/.NET IMPLEMENTATION
+echo =======================================================
+call run_csharp.bat
+echo.
+
+echo =======================================================
+echo [7/7] RUNNING RUST IMPLEMENTATION
+echo =======================================================
+call run_rust.bat
 echo.
 
 REM Record end time  

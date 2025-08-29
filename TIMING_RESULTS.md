@@ -99,8 +99,10 @@ This document presents comprehensive timing results from running the AWS Bedrock
 1. **🥇 Python** - 37.18 seconds (FASTEST - Complete)
 2. **🥈 C++** - 39.23 seconds (+2.05 sec, 1.1x slower - Complete)
 3. **🥉 Node.js** - 51.19 seconds (+14.01 sec, 1.4x slower - Complete)
-4. **4️⃣ Java** - 59.31 seconds (+22.13 sec, 1.6x slower - Complete) 🎉
+4. **4️⃣ Java** - 59.31 seconds (+22.13 sec, 1.6x slower - Complete)
 5. **5️⃣ Go** - 77.04 seconds (+39.86 sec, 2.1x slower - Complete)
+6. **6️⃣ C#/.NET** - 80.58 seconds (+43.40 sec, 2.2x slower - Complete) 🎉
+7. **🦀 Rust** - 63.39 seconds (+26.21 sec, 1.7x slower - Complete) ✅
 
 ### Stage Performance Comparison:
 
@@ -110,26 +112,32 @@ This document presents comprehensive timing results from running the AWS Bedrock
 | **C++** | 13.61 sec | 🥇 FASTEST |
 | **Python** | 16.70 sec | +3.09 sec (1.2x slower) |
 | **Java** | 21.89 sec | +8.28 sec (1.6x slower) |
+| **Rust** | 23.20 sec | +9.59 sec (1.7x slower) |
 | **Go** | 23.73 sec | +10.12 sec (1.7x slower) |
 | **Node.js** | 27.88 sec | +14.27 sec (2.0x slower) |
+| **C#/.NET** | 35.59 sec | +21.98 sec (2.6x slower) |
 
 #### Development (Claude Haiku):
 | Language | Time | Performance |
 |----------|------|-------------|
-| **Python** | 8.60 sec | 🥇 FASTEST |
-| **Node.js** | 10.77 sec | +2.17 sec (1.3x slower) |
-| **Java** | 12.31 sec | +3.71 sec (1.4x slower) |
-| **C++** | 12.81 sec | +4.21 sec (1.5x slower) |
-| **Go** | 13.13 sec | +4.53 sec (1.5x slower) |
+| **C#/.NET** | 7.82 sec | 🥇 FASTEST |
+| **Python** | 8.60 sec | +0.78 sec (1.1x slower) |
+| **Rust** | 9.10 sec | +1.28 sec (1.2x slower) |
+| **Node.js** | 10.77 sec | +2.95 sec (1.4x slower) |
+| **Java** | 12.31 sec | +4.49 sec (1.6x slower) |
+| **C++** | 12.81 sec | +4.99 sec (1.6x slower) |
+| **Go** | 13.13 sec | +5.31 sec (1.7x slower) |
 
 #### Testing (Nova Lite):
 | Language | Time | Performance |
 |----------|------|-------------|
-| **Java** | 4.81 sec | 🥇 FASTEST ✅ |
-| **Python** | 5.19 sec | +0.38 sec (1.1x slower) |
-| **Node.js** | 5.88 sec | +1.07 sec (1.2x slower) |
-| **C++** | 5.97 sec | +1.16 sec (1.2x slower) |
-| **Go** | 17.92 sec | +13.11 sec (3.7x slower) |
+| **Rust** | 4.22 sec | 🥇 FASTEST ✅ |
+| **Java** | 4.81 sec | +0.59 sec (1.1x slower) |
+| **C#/.NET** | 4.81 sec | +0.59 sec (1.1x slower) |
+| **Python** | 5.19 sec | +0.97 sec (1.2x slower) |
+| **Node.js** | 5.88 sec | +1.66 sec (1.4x slower) |
+| **C++** | 5.97 sec | +1.75 sec (1.4x slower) |
+| **Go** | 17.92 sec | +13.70 sec (4.2x slower) |
 
 #### Documentation (Titan Express):
 | Language | Time | Performance |
@@ -137,8 +145,10 @@ This document presents comprehensive timing results from running the AWS Bedrock
 | **Node.js** | 6.67 sec | 🥇 FASTEST |
 | **Python** | 6.69 sec | +0.02 sec (1.0x slower) |
 | **C++** | 6.84 sec | +0.17 sec (1.0x slower) |
-| **Java** | 20.20 sec | +13.53 sec (3.0x slower) ✅ |
+| **Java** | 20.20 sec | +13.53 sec (3.0x slower) |
 | **Go** | 22.26 sec | +15.59 sec (3.3x slower) |
+| **Rust** | 26.86 sec | +20.19 sec (4.0x slower) |
+| **C#/.NET** | 32.36 sec | +25.69 sec (4.8x slower) ✅ |
 
 ---
 
@@ -307,48 +317,80 @@ This document presents comprehensive timing results from running the AWS Bedrock
 
 ## 🔷 C#/.NET Implementation Results
 
-**Runtime:** TBD (Pending Test Execution)
+**Runtime:** 80.58 seconds (COMPLETE - 4/4 stages) 🎉
 
 ### Stage-by-Stage Breakdown:
 | Stage | Model | Duration | Status |
 |-------|--------|----------|--------|
-| **Architecture** | Claude Sonnet | TBD | ⏳ PENDING |
-| **Development** | Claude Haiku | TBD | ⏳ PENDING |
-| **Testing** | Nova Lite | TBD | ⏳ PENDING |
-| **Documentation** | Titan Express | TBD | ⏳ PENDING |
+| **Architecture** | Claude Sonnet | 35.59 sec | ✅ SUCCESS |
+| **Development** | Claude Haiku | 7.82 sec | ✅ SUCCESS |
+| **Testing** | Nova Lite | 4.81 sec | ✅ SUCCESS |
+| **Documentation** | Titan Express | 32.36 sec | ✅ SUCCESS |
 
 ### Performance Characteristics:
-- **Fastest Stage:** TBD
-- **Slowest Stage:** TBD
-- **Average Stage Time:** TBD
-- **Success Rate:** TBD
+- **Fastest Stage:** Testing (4.81 sec) - TIED for fastest across all languages
+- **Slowest Stage:** Architecture (35.59 sec)
+- **Average Stage Time:** 20.15 sec
+- **Success Rate:** 100% (4/4 stages)
 
 ### Key Features:
 - Native async/await patterns with Task-based execution
-- AWS SDK for .NET integration
-- .NET 8 with modern C# language features
+- AWS SDK for .NET integration with InvokeModel API
+- .NET 8 with modern C# language features and JsonObject/JsonArray
 - High-precision timing using `DateTime.UtcNow`
 - Comprehensive error handling with detailed failure reporting
 - Environment variable management with dotenv.net
 - Cross-platform compatibility (Windows, Linux, macOS)
-
-*Note: C#/.NET implementation completed but pending test execution to capture timing data.*
+- Proper API handling for all 4 AI models (Claude, Nova Lite, Titan Express)
 
 ---
 
 ## 📈 Statistical Summary
 
-| Metric | C++ | Python | Node.js | Go | Java |
-|--------|-----|--------|---------|-----|------|
-| **Total Time** | 39.23s | 37.18s | 51.19s | 77.04s | 28.31s* |
-| **Min Stage Time** | 5.97s | 5.19s | 5.88s | 13.13s | 10.58s* |
-| **Max Stage Time** | 13.61s | 16.70s | 27.88s | 23.73s | 11.63s* |
-| **Standard Deviation** | 4.15s | 5.52s | 10.41s | 4.70s | 0.53s* |
-| **Coefficient of Variation** | 42.3% | 59.4% | 81.3% | 24.4% | 4.7%* |
+| Metric | C++ | Python | Node.js | Go | Java | C#/.NET | Rust |
+|--------|-----|--------|---------|-----|------|---------|------|
+| **Total Time** | 39.23s | 37.18s | 51.19s | 77.04s | 59.31s | 80.58s | 63.39s |
+| **Min Stage Time** | 5.97s | 5.19s | 5.88s | 13.13s | 4.81s | 4.81s | 4.22s |
+| **Max Stage Time** | 13.61s | 16.70s | 27.88s | 23.73s | 21.89s | 35.59s | 26.86s |
+| **Standard Deviation** | 4.15s | 5.52s | 10.41s | 4.70s | 7.37s | 15.33s | 10.47s |
+| **Coefficient of Variation** | 42.3% | 59.4% | 81.3% | 24.4% | 4.7%* | 76.1% | 66.1% |
 
 *Java: Partial results (2/4 stages completed)
 
 **Winner:** Python (37.18s) - Most consistent and fastest overall performance
+
+---
+
+## 🦀 Rust Implementation Results
+
+**Runtime:** 63.39 seconds (COMPLETE - 4/4 stages) ✅
+
+### Stage-by-Stage Breakdown:
+| Stage | Model | Duration | Status |
+|-------|--------|----------|--------|
+| **Architecture** | Claude Sonnet | 23.20 sec | ✅ SUCCESS |
+| **Development** | Claude Haiku | 9.10 sec | ✅ SUCCESS |
+| **Testing** | Nova Lite | 4.22 sec | ✅ SUCCESS |
+| **Documentation** | Titan Express | 26.86 sec | ✅ SUCCESS |
+
+### Performance Characteristics:
+- **Fastest Stage:** Testing (4.22 sec) - FASTEST across ALL languages 🏆
+- **Slowest Stage:** Documentation (26.86 sec)
+- **Average Stage Time:** 15.85 sec
+- **Success Rate:** 100% (4/4 stages)
+
+### Key Features:
+- Memory-safe systems programming with zero-cost abstractions
+- Tokio async runtime for high-performance async I/O
+- AWS SDK for Rust with native async/await support
+- Comprehensive error handling with `anyhow` crate
+- High-precision timing using `std::time::Instant`
+- Environment variable management with `dotenvy` crate
+- JSON handling with `serde_json` for request/response parsing
+- Proper API handling for all 4 AI models (Claude, Nova Lite, Titan Express)
+- Cargo build system with optimized release builds
+- Strong type system preventing common runtime errors
+- Excellent Nova Lite performance - fastest Testing stage across all languages
 
 ---
 

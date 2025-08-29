@@ -125,6 +125,24 @@ std::map<std::string, std::string> loadEnvFile(const std::string& filename = ".e
     return envVars;
 }
 
+// Helper function to get model configuration with fallback defaults
+std::string getModelConfig(const std::map<std::string, std::string>& envVars, const std::string& key, const std::string& defaultValue) {
+    // Try system environment variable first
+    const char* sysValue = std::getenv(key.c_str());
+    if (sysValue && std::strlen(sysValue) > 0) {
+        return std::string(sysValue);
+    }
+    
+    // Try .env file
+    auto it = envVars.find(key);
+    if (it != envVars.end() && !it->second.empty()) {
+        return it->second;
+    }
+    
+    // Fall back to default
+    return defaultValue;
+}
+
 class BedrockAgent {
 private:
     std::unique_ptr<Aws::BedrockRuntime::BedrockRuntimeClient> client;
@@ -194,14 +212,23 @@ private:
     std::vector<StageTimings> timings;
 
 public:
-    GameDevelopmentPipeline(const Aws::Client::ClientConfiguration& config) 
-        : architectAgent("anthropic.claude-3-sonnet-20240229-v1:0", 
+    GameDevelopmentPipeline(const Aws::Client::ClientConfiguration& config, const std::map<std::string, std::string>& envVars) 
+        : architectAgent(getModelConfig(envVars, "ARCHITECTURE_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0"), 
                         "You are a software architect. Create detailed technical specifications and architecture for software projects.", config),
-          developerAgent("anthropic.claude-3-haiku-20240307-v1:0",
+          developerAgent(getModelConfig(envVars, "DEVELOPMENT_MODEL", "anthropic.claude-3-haiku-20240307-v1:0"),
                         "You are a Python developer. Write clean, functional code based on specifications.", config),
-          testerAgent("amazon.nova-lite-v1:0",
+          testerAgent(getModelConfig(envVars, "TESTING_MODEL", "amazon.nova-lite-v1:0"),
                      "You are a QA engineer. Create comprehensive tests for code to ensure it works correctly.", config),
-          documenterAgent("amazon.titan-text-express-v1", "", config) {}
+          documenterAgent(getModelConfig(envVars, "DOCUMENTATION_MODEL", "amazon.titan-text-express-v1"), "", config) {
+        
+        // Print model configuration
+        std::cout << "\nModel Configuration:\n";
+        std::cout << "  Architecture: " << getModelConfig(envVars, "ARCHITECTURE_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0") << "\n";
+        std::cout << "  Development:  " << getModelConfig(envVars, "DEVELOPMENT_MODEL", "anthropic.claude-3-haiku-20240307-v1:0") << "\n";
+        std::cout << "  Testing:      " << getModelConfig(envVars, "TESTING_MODEL", "amazon.nova-lite-v1:0") << "\n";
+        std::cout << "  Documentation: " << getModelConfig(envVars, "DOCUMENTATION_MODEL", "amazon.titan-text-express-v1") << "\n";
+        std::cout << "\n";
+    }
 
     bool execute() {
         std::string projectRequest = "Create a simple Tic-Tac-Toe (X&Os) game in Python";
@@ -412,7 +439,7 @@ int main() {
         std::cout << "Test response: " << testResult.substr(0, 50) << "...\n";
         
         std::cout << "\nStarting 4-Agent Game Development Pipeline in C++...\n\n";
-        GameDevelopmentPipeline pipeline(clientConfig);
+        GameDevelopmentPipeline pipeline(clientConfig, envVars);
         bool success = pipeline.execute();
         
         if (!success) {

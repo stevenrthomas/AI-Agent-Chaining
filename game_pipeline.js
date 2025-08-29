@@ -29,22 +29,32 @@ class BedrockAgent {
     }
 }
 
-const architectAgent = new BedrockAgent(
-    'anthropic.claude-3-sonnet-20240229-v1:0',
+// Get model configurations from environment variables with fallback defaults
+const architectureModel = process.env.ARCHITECTURE_MODEL || 'anthropic.claude-3-sonnet-20240229-v1:0';
+const developmentModel = process.env.DEVELOPMENT_MODEL || 'anthropic.claude-3-haiku-20240307-v1:0';
+const testingModel = process.env.TESTING_MODEL || 'amazon.nova-lite-v1:0';
+const documentationModel = process.env.DOCUMENTATION_MODEL || 'amazon.titan-text-express-v1';
+
+console.log('Model Configuration:');
+console.log(`  Architecture: ${architectureModel}`);
+console.log(`  Development:  ${developmentModel}`);
+console.log(`  Testing:      ${testingModel}`);
+console.log(`  Documentation: ${documentationModel}`);
+console.log();
+
+const architectAgent = new BedrockAgent(architectureModel,
     'You are a software architect. Create detailed technical specifications and architecture for software projects.'
 );
 
-const developerAgent = new BedrockAgent(
-    'anthropic.claude-3-haiku-20240307-v1:0',
+const developerAgent = new BedrockAgent(developmentModel,
     'You are a Python developer. Write clean, functional code based on specifications.'
 );
 
-const testerAgent = new BedrockAgent(
-    'amazon.nova-lite-v1:0',
+const testerAgent = new BedrockAgent(testingModel,
     'You are a QA engineer. Create comprehensive tests for code to ensure it works correctly.'
 );
 
-const documenterAgent = new BedrockAgent('amazon.titan-text-express-v1');
+const documenterAgent = new BedrockAgent(documentationModel);
 
 function printTimingSummary(timings, totalTime) {
     console.log('\n📊 TIMING SUMMARY');

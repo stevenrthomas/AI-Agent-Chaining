@@ -165,11 +165,11 @@ public class GamePipeline {
     }
     
     private static void printTimingSummary(List<StageResult> timings, Duration totalTime) {
-        System.out.println("\n📊 TIMING SUMMARY");
+        System.out.println("\nTIMING SUMMARY");
         System.out.println("-".repeat(50));
         
         for (StageResult timing : timings) {
-            String status = timing.success ? "✅" : "❌";
+            String status = timing.success ? "SUCCESS" : "FAILED";
             System.out.printf("%-35s: %8.2f sec %s%n", 
                 timing.name, timing.duration.toMillis() / 1000.0, status);
         }
@@ -179,23 +179,32 @@ public class GamePipeline {
         System.out.println("=".repeat(50));
     }
     
-    private static void gameDevelopmentPipeline(BedrockRuntimeClient client) throws Exception {
+    private static void gameDevelopmentPipeline(BedrockRuntimeClient client, Dotenv dotenv) throws Exception {
         String projectRequest = "Create a simple Tic-Tac-Toe (X&Os) game in Python";
         Instant pipelineStart = Instant.now();
         List<StageResult> timings = new ArrayList<>();
         
+        // Get model configurations from environment variables with fallback defaults
+        String architectureModel = getModelConfig(dotenv, "ARCHITECTURE_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0");
+        String developmentModel = getModelConfig(dotenv, "DEVELOPMENT_MODEL", "anthropic.claude-3-haiku-20240307-v1:0");
+        String testingModel = getModelConfig(dotenv, "TESTING_MODEL", "amazon.nova-lite-v1:0");
+        String documentationModel = getModelConfig(dotenv, "DOCUMENTATION_MODEL", "amazon.titan-text-express-v1");
+        
+        System.out.println("Model Configuration:");
+        System.out.printf("  Architecture: %s%n", architectureModel);
+        System.out.printf("  Development:  %s%n", developmentModel);
+        System.out.printf("  Testing:      %s%n", testingModel);
+        System.out.printf("  Documentation: %s%n", documentationModel);
+        System.out.println();
+        
         // Initialize agents
-        BedrockAgent architectAgent = new BedrockAgent(client, 
-            "anthropic.claude-3-sonnet-20240229-v1:0",
+        BedrockAgent architectAgent = new BedrockAgent(client, architectureModel,
             "You are a software architect. Create detailed technical specifications and architecture for software projects.");
-        BedrockAgent developerAgent = new BedrockAgent(client,
-            "anthropic.claude-3-haiku-20240307-v1:0", 
+        BedrockAgent developerAgent = new BedrockAgent(client, developmentModel, 
             "You are a Python developer. Write clean, functional code based on specifications.");
-        BedrockAgent testerAgent = new BedrockAgent(client,
-            "amazon.nova-lite-v1:0",
+        BedrockAgent testerAgent = new BedrockAgent(client, testingModel,
             "You are a QA engineer. Create comprehensive tests for code to ensure it works correctly.");
-        BedrockAgent documenterAgent = new BedrockAgent(client,
-            "amazon.titan-text-express-v1", "");
+        BedrockAgent documenterAgent = new BedrockAgent(client, documentationModel, "");
         
         try {
             // Stage 1: Architecture
@@ -207,7 +216,7 @@ public class GamePipeline {
             
             timings.add(new StageResult("Architecture (Claude Sonnet)", stage1Duration, true));
             System.out.printf("%n=== ARCHITECTURE ===%n%s%n%n", architecture);
-            System.out.printf("✅ Stage 1 completed successfully in %.2f seconds%n%n", 
+            System.out.printf("Stage 1 completed successfully in %.2f seconds%n%n", 
                 stage1Duration.toMillis() / 1000.0);
             
             // Stage 2: Development
@@ -219,7 +228,7 @@ public class GamePipeline {
             
             timings.add(new StageResult("Development (Claude Haiku)", stage2Duration, true));
             System.out.printf("%n=== CODE ===%n%s%n%n", code);
-            System.out.printf("✅ Stage 2 completed successfully in %.2f seconds%n%n", 
+            System.out.printf("Stage 2 completed successfully in %.2f seconds%n%n", 
                 stage2Duration.toMillis() / 1000.0);
             
             // Stage 3: Testing
@@ -231,7 +240,7 @@ public class GamePipeline {
             
             timings.add(new StageResult("Testing (Nova Lite)", stage3Duration, true));
             System.out.printf("%n=== TESTS ===%n%s%n%n", tests);
-            System.out.printf("✅ Stage 3 completed successfully in %.2f seconds%n%n", 
+            System.out.printf("Stage 3 completed successfully in %.2f seconds%n%n", 
                 stage3Duration.toMillis() / 1000.0);
             
             // Stage 4: Documentation
@@ -248,14 +257,14 @@ public class GamePipeline {
             
             timings.add(new StageResult("Documentation (Titan Express)", stage4Duration, true));
             System.out.printf("%n=== DOCUMENTATION ===%n%s%n%n", documentation);
-            System.out.printf("✅ Stage 4 completed successfully in %.2f seconds%n%n", 
+            System.out.printf("Stage 4 completed successfully in %.2f seconds%n%n", 
                 stage4Duration.toMillis() / 1000.0);
             
             // Calculate total time
             Duration totalDuration = Duration.between(pipelineStart, Instant.now());
             
             System.out.println("\n" + "=".repeat(50));
-            System.out.println("✅ PIPELINE COMPLETE - 4 AGENTS COLLABORATED");
+            System.out.println("PIPELINE COMPLETE - 4 AGENTS COLLABORATED");
             System.out.println("=".repeat(50));
             System.out.println("[DONE] Architecture designed by Claude Sonnet");
             System.out.println("[DONE] Code written by Claude Haiku");
@@ -288,7 +297,7 @@ public class GamePipeline {
             
             timings.add(new StageResult(stageName, failedStageDuration, false));
             
-            System.out.printf("%n❌ PIPELINE FAILED at Stage %d (%s)%n", timings.size(), stageName);
+            System.out.printf("%nPIPELINE FAILED at Stage %d (%s)%n", timings.size(), stageName);
             System.out.printf("Error details: %s%n", e.getMessage());
             System.out.printf("Time spent: %.2f seconds%n", failedStageDuration.toMillis() / 1000.0);
             System.out.println("\nPossible causes:");
@@ -303,13 +312,32 @@ public class GamePipeline {
         }
     }
     
+    private static String getModelConfig(Dotenv dotenv, String envKey, String defaultValue) {
+        // Try system environment variable first
+        String value = System.getenv(envKey);
+        if (value != null && !value.trim().isEmpty()) {
+            return value;
+        }
+        
+        // Try .env file if dotenv is loaded
+        if (dotenv != null) {
+            value = dotenv.get(envKey);
+            if (value != null && !value.trim().isEmpty()) {
+                return value;
+            }
+        }
+        
+        // Fall back to default
+        return defaultValue;
+    }
+    
     public static void main(String[] args) {
         try {
             // Load .env file
             Dotenv dotenv = null;
             try {
                 dotenv = Dotenv.configure().ignoreIfMissing().load();
-                System.out.println("✅ .env file loaded successfully");
+                System.out.println(".env file loaded successfully");
             } catch (Exception e) {
                 System.out.println("Warning: Could not load .env file: " + e.getMessage());
             }
@@ -348,19 +376,20 @@ public class GamePipeline {
             }
             System.out.printf("Using region: %s%n%n", region);
             
-            // Create Bedrock client
-            BedrockRuntimeClient client = BedrockRuntimeClient.builder()
+            // Create Bedrock client with try-with-resources for proper cleanup
+            try (BedrockRuntimeClient client = BedrockRuntimeClient.builder()
                 .region(Region.of(region))
                 .credentialsProvider(DefaultCredentialsProvider.create())
-                .build();
-            
-            // Run the pipeline
-            gameDevelopmentPipeline(client);
-            
-            System.out.println("\n🚀 Java Implementation Complete!");
+                .build()) {
+                
+                // Run the pipeline
+                gameDevelopmentPipeline(client, dotenv);
+                
+                System.out.println("\nJava Implementation Complete!");
+            }
             
         } catch (Exception e) {
-            System.err.printf("%n❌ Pipeline failed with error: %s%n", e.getMessage());
+            System.err.printf("%nPipeline failed with error: %s%n", e.getMessage());
             e.printStackTrace();
             System.exit(1);
         }

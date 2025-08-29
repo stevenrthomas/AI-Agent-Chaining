@@ -9,8 +9,10 @@ echo 2. Node.js
 echo 3. C++
 echo 4. Go  
 echo 5. Java
+echo 6. C#/.NET
+echo 7. Rust
 echo.
-set /p choice="Enter your choice (1-5): "
+set /p choice="Enter your choice (1-7): "
 
 if "%choice%"=="1" (
     echo Running Python implementation...
@@ -27,8 +29,14 @@ if "%choice%"=="1" (
 ) else if "%choice%"=="5" (
     echo Running Java implementation...
     call run_java.bat
+) else if "%choice%"=="6" (
+    echo Running C#/.NET implementation...
+    call run_csharp.bat
+) else if "%choice%"=="7" (
+    echo Running Rust implementation...
+    call run_rust.bat
 ) else (
-    echo Invalid choice. Please run the script again and select 1-5.
+    echo Invalid choice. Please run the script again and select 1-7.
     pause
     exit /b 1
 )
