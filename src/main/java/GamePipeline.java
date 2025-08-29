@@ -2,9 +2,12 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.*;
+import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
+import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.github.cdimascio.dotenv.Dotenv;
 
 import java.time.Duration;
@@ -31,31 +34,116 @@ public class GamePipeline {
         public CompletableFuture<String> runAsync(String userInput) {
             return CompletableFuture.supplyAsync(() -> {
                 try {
-                    List<Message> messages = new ArrayList<>();
-                    messages.add(Message.builder()
-                        .role(ConversationRole.USER)
-                        .content(ContentBlock.fromText(userInput))
-                        .build());
+                    ObjectNode requestJson;
                     
-                    ConverseRequest.Builder requestBuilder = ConverseRequest.builder()
-                        .modelId(modelId)
-                        .messages(messages);
-                    
-                    if (!systemPrompt.isEmpty()) {
-                        requestBuilder.system(SystemContentBlock.fromText(systemPrompt));
-                    }
-                    
-                    ConverseResponse response = client.converse(requestBuilder.build());
-                    
-                    if (response.output() != null && response.output().message() != null 
-                        && !response.output().message().content().isEmpty()) {
-                        ContentBlock content = response.output().message().content().get(0);
-                        if (content.text() != null) {
-                            return content.text();
+                    if (modelId.contains("anthropic.claude")) {
+                        // Claude request format
+                        requestJson = objectMapper.createObjectNode();
+                        requestJson.put("anthropic_version", "bedrock-2023-05-31");
+                        requestJson.put("max_tokens", 4000);
+                        
+                        ArrayNode messages = objectMapper.createArrayNode();
+                        ObjectNode message = objectMapper.createObjectNode();
+                        message.put("role", "user");
+                        message.put("content", userInput);
+                        messages.add(message);
+                        requestJson.set("messages", messages);
+                        
+                        if (!systemPrompt.isEmpty()) {
+                            requestJson.put("system", systemPrompt);
                         }
+                    } else if (modelId.contains("amazon.titan")) {
+                        // Titan request format
+                        requestJson = objectMapper.createObjectNode();
+                        requestJson.put("inputText", userInput);
+                        
+                        ObjectNode config = objectMapper.createObjectNode();
+                        config.put("maxTokenCount", 4000);
+                        config.put("temperature", 0.7);
+                        requestJson.set("textGenerationConfig", config);
+                    } else if (modelId.contains("amazon.nova")) {
+                        // Nova Lite request format with required parameters
+                        requestJson = objectMapper.createObjectNode();
+                        
+                        ArrayNode messages = objectMapper.createArrayNode();
+                        ObjectNode message = objectMapper.createObjectNode();
+                        message.put("role", "user");
+                        
+                        ArrayNode content = objectMapper.createArrayNode();
+                        ObjectNode textContent = objectMapper.createObjectNode();
+                        textContent.put("text", userInput);
+                        content.add(textContent);
+                        message.set("content", content);
+                        messages.add(message);
+                        requestJson.set("messages", messages);
+                        
+                        // Nova Lite specific configuration
+                        ObjectNode inferenceConfig = objectMapper.createObjectNode();
+                        inferenceConfig.put("maxTokens", 4000);
+                        inferenceConfig.put("temperature", 0.7);
+                        requestJson.set("inferenceConfig", inferenceConfig);
+                        
+                        if (!systemPrompt.isEmpty()) {
+                            ArrayNode system = objectMapper.createArrayNode();
+                            ObjectNode systemContent = objectMapper.createObjectNode();
+                            systemContent.put("text", systemPrompt);
+                            system.add(systemContent);
+                            requestJson.set("system", system);
+                        }
+                    } else {
+                        throw new RuntimeException("Unsupported model: " + modelId);
                     }
                     
-                    throw new RuntimeException("Empty response from model");
+                    String requestBody = objectMapper.writeValueAsString(requestJson);
+                    
+                    InvokeModelRequest request = InvokeModelRequest.builder()
+                        .modelId(modelId)
+                        .contentType("application/json")
+                        .body(SdkBytes.fromUtf8String(requestBody))
+                        .build();
+                    
+                    InvokeModelResponse response = client.invokeModel(request);
+                    String responseBody = response.body().asUtf8String();
+                    
+                    JsonNode responseJson = objectMapper.readTree(responseBody);
+                    
+                    // Parse response based on model type
+                    if (modelId.contains("anthropic.claude")) {
+                        JsonNode content = responseJson.get("content");
+                        if (content != null && content.isArray() && content.size() > 0) {
+                            return content.get(0).get("text").asText();
+                        }
+                    } else if (modelId.contains("amazon.titan")) {
+                        // Titan Express returns response in results[0].outputText structure
+                        JsonNode results = responseJson.get("results");
+                        if (results != null && results.isArray() && results.size() > 0) {
+                            JsonNode firstResult = results.get(0);
+                            if (firstResult != null && firstResult.has("outputText")) {
+                                return firstResult.get("outputText").asText();
+                            }
+                        }
+                        // Debug: Print the actual response for Titan if parsing fails
+                        System.err.println("Titan response debug: " + responseJson.toString());
+                    } else if (modelId.contains("amazon.nova")) {
+                        // Nova Lite returns response in output.message.content structure
+                        JsonNode output = responseJson.get("output");
+                        if (output != null) {
+                            JsonNode message = output.get("message");
+                            if (message != null) {
+                                JsonNode content = message.get("content");
+                                if (content != null && content.isArray() && content.size() > 0) {
+                                    JsonNode firstContent = content.get(0);
+                                    if (firstContent != null && firstContent.has("text")) {
+                                        return firstContent.get("text").asText();
+                                    }
+                                }
+                            }
+                        }
+                        // Debug: Print the actual response for Nova if parsing fails
+                        System.err.println("Nova response debug: " + responseJson.toString());
+                    }
+                    
+                    throw new RuntimeException("No content in response");
                     
                 } catch (Exception e) {
                     throw new RuntimeException("Bedrock API error: " + e.getMessage(), e);
@@ -221,6 +309,7 @@ public class GamePipeline {
             Dotenv dotenv = null;
             try {
                 dotenv = Dotenv.configure().ignoreIfMissing().load();
+                System.out.println("✅ .env file loaded successfully");
             } catch (Exception e) {
                 System.out.println("Warning: Could not load .env file: " + e.getMessage());
             }
@@ -229,8 +318,28 @@ public class GamePipeline {
             System.out.println("====================================");
             System.out.println("Starting 4-Agent Game Development Pipeline...\n");
             
+            // Set environment variables from .env file if loaded
+            if (dotenv != null) {
+                // Set AWS credentials in system properties if they exist in .env
+                String accessKey = dotenv.get("AWS_ACCESS_KEY_ID");
+                String secretKey = dotenv.get("AWS_SECRET_ACCESS_KEY");
+                String region = dotenv.get("AWS_DEFAULT_REGION");
+                
+                if (accessKey != null && secretKey != null) {
+                    System.setProperty("aws.accessKeyId", accessKey);
+                    System.setProperty("aws.secretAccessKey", secretKey);
+                    System.out.println("AWS credentials loaded from .env file");
+                }
+                if (region != null) {
+                    System.setProperty("aws.region", region);
+                }
+            }
+            
             // Get region from environment
-            String region = System.getenv("AWS_DEFAULT_REGION");
+            String region = System.getProperty("aws.region");
+            if (region == null) {
+                region = System.getenv("AWS_DEFAULT_REGION");
+            }
             if (region == null && dotenv != null) {
                 region = dotenv.get("AWS_DEFAULT_REGION");
             }

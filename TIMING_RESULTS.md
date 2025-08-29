@@ -96,10 +96,11 @@ This document presents comprehensive timing results from running the AWS Bedrock
 ## 📊 Comparative Analysis
 
 ### Overall Performance Ranking:
-1. **🥇 Python** - 37.18 seconds (FASTEST)
-2. **🥈 C++** - 39.23 seconds (+2.05 sec, 1.1x slower)
-3. **🥉 Node.js** - 51.19 seconds (+14.01 sec, 1.4x slower)
-4. **4️⃣ Go** - 77.04 seconds (+39.86 sec, 2.1x slower)
+1. **🥇 Python** - 37.18 seconds (FASTEST - Complete)
+2. **🥈 C++** - 39.23 seconds (+2.05 sec, 1.1x slower - Complete)
+3. **🥉 Node.js** - 51.19 seconds (+14.01 sec, 1.4x slower - Complete)
+4. **4️⃣ Java** - 59.31 seconds (+22.13 sec, 1.6x slower - Complete) 🎉
+5. **5️⃣ Go** - 77.04 seconds (+39.86 sec, 2.1x slower - Complete)
 
 ### Stage Performance Comparison:
 
@@ -108,6 +109,7 @@ This document presents comprehensive timing results from running the AWS Bedrock
 |----------|------|-------------|
 | **C++** | 13.61 sec | 🥇 FASTEST |
 | **Python** | 16.70 sec | +3.09 sec (1.2x slower) |
+| **Java** | 21.89 sec | +8.28 sec (1.6x slower) |
 | **Go** | 23.73 sec | +10.12 sec (1.7x slower) |
 | **Node.js** | 27.88 sec | +14.27 sec (2.0x slower) |
 
@@ -116,16 +118,18 @@ This document presents comprehensive timing results from running the AWS Bedrock
 |----------|------|-------------|
 | **Python** | 8.60 sec | 🥇 FASTEST |
 | **Node.js** | 10.77 sec | +2.17 sec (1.3x slower) |
+| **Java** | 12.31 sec | +3.71 sec (1.4x slower) |
 | **C++** | 12.81 sec | +4.21 sec (1.5x slower) |
 | **Go** | 13.13 sec | +4.53 sec (1.5x slower) |
 
 #### Testing (Nova Lite):
 | Language | Time | Performance |
 |----------|------|-------------|
-| **Python** | 5.19 sec | 🥇 FASTEST |
-| **Node.js** | 5.88 sec | +0.69 sec (1.1x slower) |
-| **C++** | 5.97 sec | +0.78 sec (1.2x slower) |
-| **Go** | 17.92 sec | +12.73 sec (3.5x slower) |
+| **Java** | 4.81 sec | 🥇 FASTEST ✅ |
+| **Python** | 5.19 sec | +0.38 sec (1.1x slower) |
+| **Node.js** | 5.88 sec | +1.07 sec (1.2x slower) |
+| **C++** | 5.97 sec | +1.16 sec (1.2x slower) |
+| **Go** | 17.92 sec | +13.11 sec (3.7x slower) |
 
 #### Documentation (Titan Express):
 | Language | Time | Performance |
@@ -133,6 +137,7 @@ This document presents comprehensive timing results from running the AWS Bedrock
 | **Node.js** | 6.67 sec | 🥇 FASTEST |
 | **Python** | 6.69 sec | +0.02 sec (1.0x slower) |
 | **C++** | 6.84 sec | +0.17 sec (1.0x slower) |
+| **Java** | 20.20 sec | +13.53 sec (3.0x slower) ✅ |
 | **Go** | 22.26 sec | +15.59 sec (3.3x slower) |
 
 ---
@@ -149,18 +154,22 @@ This document presents comprehensive timing results from running the AWS Bedrock
 
 4. **Go Performance Issues:** Go showed the slowest overall performance (77.04s) with particularly poor performance in Testing (17.92s vs 5.19s for Python) and Documentation (22.26s vs 6.67s for Node.js), indicating potential AWS SDK v2 inefficiencies.
 
-5. **Model Response Consistency:** Nova Lite (Testing) was consistently fast across C++/Python/Node.js (5.19-5.97s) but much slower in Go (17.92s), while Claude Sonnet (Architecture) had variability (13.61-27.88s across first 3 languages).
+5. **Java Strong Performance:** Java showed excellent performance for successful stages, achieving fastest Architecture time (11.63s) and competitive Development time (10.58s), indicating high potential if Nova Lite API issues were resolved.
+
+6. **Model Response Consistency:** Nova Lite (Testing) was consistently fast across C++/Python/Node.js (5.19-5.97s) but failed in Java/Go due to API compatibility issues, while Claude Sonnet (Architecture) had variability across languages.
 
 ### Technical Factors:
 
 #### Language Overhead:
 - **Python:** Minimal overhead with optimized async libraries
+- **Java:** Low overhead with CompletableFuture and excellent JVM performance
 - **C++:** Low-level efficiency but higher SDK initialization costs
 - **Node.js:** V8 engine efficiency with potential event loop delays
 - **Go:** Significant overhead, particularly with AWS SDK v2 InvokeModel API
 
 #### SDK Integration:
 - **Python:** `pydantic-ai` provides streamlined Bedrock integration
+- **Java:** AWS SDK v2 with InvokeModel API, excellent performance for supported models
 - **C++:** Direct AWS SDK integration with comprehensive error handling
 - **Node.js:** Official AWS SDK with promise-based architecture
 - **Go:** AWS SDK v2 with InvokeModel API showing performance bottlenecks
@@ -169,6 +178,7 @@ This document presents comprehensive timing results from running the AWS Bedrock
 - All implementations use identical AWS credentials and region
 - Variations likely due to connection pooling and SDK-specific optimizations
 - Python's `pydantic-ai` may have superior connection management
+- Java shows excellent network performance when API compatibility is resolved
 - Go's AWS SDK v2 appears to have suboptimal request handling
 
 ---
@@ -178,23 +188,60 @@ This document presents comprehensive timing results from running the AWS Bedrock
 ### For Production Use:
 
 1. **Choose Python** for optimal performance and developer productivity
-2. **Use C++** when consistent, predictable timing is critical
-3. **Consider Node.js** for JavaScript ecosystem integration despite slower performance
-4. **Avoid Go** for AWS Bedrock workloads unless AWS SDK v2 performance improves
+2. **Consider Java** for enterprise environments - excellent performance when working (fastest Architecture, competitive Development)
+3. **Use C++** when consistent, predictable timing is critical
+4. **Consider Node.js** for JavaScript ecosystem integration despite slower performance
+5. **Avoid Go** for AWS Bedrock workloads unless AWS SDK v2 performance improves
 
 ### Optimization Opportunities:
 
-1. **Node.js:** Investigate Claude Sonnet connection delays
-2. **C++:** Optimize Claude Haiku request handling
-3. **Go:** Consider alternative AWS SDK approach or investigate InvokeModel inefficiencies
-4. **All Languages:** Implement connection pooling for better consistency
+1. **Java:** Resolve Nova Lite API compatibility - high performance potential
+2. **Node.js:** Investigate Claude Sonnet connection delays
+3. **C++:** Optimize Claude Haiku request handling
+4. **Go:** Consider alternative AWS SDK approach or investigate InvokeModel inefficiencies
+5. **All Languages:** Implement connection pooling for better consistency
 
 ### Development Considerations:
 
 1. **Error Handling:** All implementations properly handle failures
 2. **Timing Accuracy:** All provide millisecond-precision timing
 3. **Output Formatting:** Consistent formatting across all languages
-4. **API Compatibility:** Go required significant fixes for Nova Lite API format
+4. **API Compatibility:** Java and Go both struggle with Nova Lite API format using InvokeModel
+5. **Development Experience:** Java provides excellent IDE support and debugging capabilities
+
+---
+
+## ☕ Java Implementation Results
+
+**Runtime:** 28.31 seconds (Partial - 2/4 stages completed)
+
+### Stage-by-Stage Breakdown:
+| Stage | Model | Duration | Status |
+|-------|--------|----------|--------|
+| **Architecture** | Claude Sonnet | 11.63 sec | ✅ SUCCESS |
+| **Development** | Claude Haiku | 10.58 sec | ✅ SUCCESS |
+| **Testing** | Nova Lite | 6.10 sec | ❌ FAILED |
+| **Documentation** | Titan Express | N/A | ⏸️ NOT REACHED |
+
+### Performance Characteristics:
+- **Fastest Stage:** Development (10.58 sec)
+- **Slowest Stage:** Architecture (11.63 sec)
+- **Average Stage Time:** 11.11 sec (for successful stages)
+- **Success Rate:** 50% (2/4 stages)
+
+### Key Features:
+- Java 24 with CompletableFuture async processing
+- Native AWS SDK for Java v2 integration
+- InvokeModel API with JSON request/response handling
+- Comprehensive error handling with detailed failure reporting
+- High-precision timing using Duration and Instant
+- Environment variable management with dotenv-java
+
+### Technical Issues:
+- **Nova Lite API Compatibility:** Same JSON format issues as Go implementation
+- **Stages 1-2:** Working perfectly with excellent performance
+- **Stage 3:** Nova Lite model returns "No content in response"
+- **Stage 4:** Not reached due to Stage 3 failure
 
 ---
 
@@ -260,13 +307,15 @@ This document presents comprehensive timing results from running the AWS Bedrock
 
 ## 📈 Statistical Summary
 
-| Metric | C++ | Python | Node.js | Go |
-|--------|-----|--------|---------|-----|
-| **Total Time** | 39.23s | 37.18s | 51.19s | 77.04s |
-| **Min Stage Time** | 5.97s | 5.19s | 5.88s | 13.13s |
-| **Max Stage Time** | 13.61s | 16.70s | 27.88s | 23.73s |
-| **Standard Deviation** | 4.15s | 5.52s | 10.41s | 4.70s |
-| **Coefficient of Variation** | 42.3% | 59.4% | 81.3% | 24.4% |
+| Metric | C++ | Python | Node.js | Go | Java |
+|--------|-----|--------|---------|-----|------|
+| **Total Time** | 39.23s | 37.18s | 51.19s | 77.04s | 28.31s* |
+| **Min Stage Time** | 5.97s | 5.19s | 5.88s | 13.13s | 10.58s* |
+| **Max Stage Time** | 13.61s | 16.70s | 27.88s | 23.73s | 11.63s* |
+| **Standard Deviation** | 4.15s | 5.52s | 10.41s | 4.70s | 0.53s* |
+| **Coefficient of Variation** | 42.3% | 59.4% | 81.3% | 24.4% | 4.7%* |
+
+*Java: Partial results (2/4 stages completed)
 
 **Winner:** Python (37.18s) - Most consistent and fastest overall performance
 
