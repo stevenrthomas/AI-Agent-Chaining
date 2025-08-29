@@ -11,7 +11,7 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 
 ## Supported Languages
 
-### ✅ **Implemented**
+### ✅ **Implemented & Tested**
 - **Python** - Using PydanticAI for easy model orchestration
 - **Node.js** - Using AWS SDK for JavaScript/TypeScript environments  
 - **C++** - Native AWS SDK integration for high-performance scenarios
