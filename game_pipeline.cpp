@@ -14,6 +14,8 @@
 #include <map>
 #include <memory>
 #include <cstdlib>
+#include <chrono>
+#include <iomanip>
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -176,12 +178,20 @@ public:
     }
 };
 
+// Structure to store timing information
+struct StageTimings {
+    std::string stageName;
+    double durationSeconds;
+    bool success;
+};
+
 class GameDevelopmentPipeline {
 private:
     BedrockAgent architectAgent;
     BedrockAgent developerAgent;
     BedrockAgent testerAgent;
     BedrockAgent documenterAgent;
+    std::vector<StageTimings> timings;
 
 public:
     GameDevelopmentPipeline(const Aws::Client::ClientConfiguration& config) 
@@ -195,64 +205,97 @@ public:
 
     bool execute() {
         std::string projectRequest = "Create a simple Tic-Tac-Toe (X&Os) game in Python";
+        auto pipelineStart = std::chrono::high_resolution_clock::now();
         
         // Stage 1: Architecture
         std::cout << "[1/4] Creating architecture with Claude Sonnet...\n";
+        auto stage1Start = std::chrono::high_resolution_clock::now();
         std::string architecture = architectAgent.run("Create a detailed architecture and rulebook for: " + projectRequest);
+        auto stage1End = std::chrono::high_resolution_clock::now();
+        double stage1Duration = std::chrono::duration<double>(stage1End - stage1Start).count();
         
         // Check for error in Stage 1
         if (architecture.find("Error:") == 0) {
+            timings.push_back({"Architecture (Claude Sonnet)", stage1Duration, false});
             std::cerr << "\n❌ PIPELINE FAILED at Stage 1 (Architecture)\n";
             std::cerr << "Error details: " << architecture << "\n";
+            std::cerr << "Time spent: " << std::fixed << std::setprecision(2) << stage1Duration << " seconds\n";
             std::cerr << "\nPossible causes:\n";
             std::cerr << "1. Network connectivity issue\n";
             std::cerr << "2. Invalid AWS credentials\n";
             std::cerr << "3. Model not available in region " << std::getenv("AWS_DEFAULT_REGION") << "\n";
             std::cerr << "4. Insufficient permissions for Claude Sonnet model\n";
+            printTimingSummary();
             return false;
         }
+        timings.push_back({"Architecture (Claude Sonnet)", stage1Duration, true});
         std::cout << "\n=== ARCHITECTURE ===\n" << architecture << "\n\n";
-        std::cout << "✅ Stage 1 completed successfully\n\n";
+        std::cout << "✅ Stage 1 completed successfully in " << std::fixed << std::setprecision(2) << stage1Duration << " seconds\n\n";
         
         // Stage 2: Development
         std::cout << "[2/4] Writing code with Claude Haiku...\n";
+        auto stage2Start = std::chrono::high_resolution_clock::now();
         std::string code = developerAgent.run("Based on this architecture, write complete Python code:\n" + architecture);
+        auto stage2End = std::chrono::high_resolution_clock::now();
+        double stage2Duration = std::chrono::duration<double>(stage2End - stage2Start).count();
         
         // Check for error in Stage 2
         if (code.find("Error:") == 0) {
+            timings.push_back({"Development (Claude Haiku)", stage2Duration, false});
             std::cerr << "\n❌ PIPELINE FAILED at Stage 2 (Development)\n";
             std::cerr << "Error details: " << code << "\n";
+            std::cerr << "Time spent: " << std::fixed << std::setprecision(2) << stage2Duration << " seconds\n";
+            printTimingSummary();
             return false;
         }
+        timings.push_back({"Development (Claude Haiku)", stage2Duration, true});
         std::cout << "\n=== CODE ===\n" << code << "\n\n";
-        std::cout << "✅ Stage 2 completed successfully\n\n";
+        std::cout << "✅ Stage 2 completed successfully in " << std::fixed << std::setprecision(2) << stage2Duration << " seconds\n\n";
         
         // Stage 3: Testing
         std::cout << "[3/4] Creating tests with Nova Lite...\n";
+        auto stage3Start = std::chrono::high_resolution_clock::now();
         std::string tests = testerAgent.run("Create comprehensive unit tests for this code:\n" + code);
+        auto stage3End = std::chrono::high_resolution_clock::now();
+        double stage3Duration = std::chrono::duration<double>(stage3End - stage3Start).count();
         
         // Check for error in Stage 3
         if (tests.find("Error:") == 0) {
+            timings.push_back({"Testing (Nova Lite)", stage3Duration, false});
             std::cerr << "\n❌ PIPELINE FAILED at Stage 3 (Testing)\n";
             std::cerr << "Error details: " << tests << "\n";
+            std::cerr << "Time spent: " << std::fixed << std::setprecision(2) << stage3Duration << " seconds\n";
+            printTimingSummary();
             return false;
         }
+        timings.push_back({"Testing (Nova Lite)", stage3Duration, true});
         std::cout << "\n=== TESTS ===\n" << tests << "\n\n";
-        std::cout << "✅ Stage 3 completed successfully\n\n";
+        std::cout << "✅ Stage 3 completed successfully in " << std::fixed << std::setprecision(2) << stage3Duration << " seconds\n\n";
         
         // Stage 4: Documentation
         std::cout << "[4/4] Creating documentation with Titan Express...\n";
+        auto stage4Start = std::chrono::high_resolution_clock::now();
         std::string docPrompt = "Act as a technical writer. Create comprehensive documentation for this Tic-Tac-Toe game. Include setup instructions, usage guide, architecture overview, testing approach, and API reference.\n\nArchitecture:\n" + architecture + "\n\nCode Implementation:\n" + code + "\n\nTest Suite:\n" + tests + "\n\nCreate documentation that explains the architecture decisions, how to use the application, and how it was tested.";
         std::string documentation = documenterAgent.run(docPrompt);
+        auto stage4End = std::chrono::high_resolution_clock::now();
+        double stage4Duration = std::chrono::duration<double>(stage4End - stage4Start).count();
         
         // Check for error in Stage 4
         if (documentation.find("Error:") == 0) {
+            timings.push_back({"Documentation (Titan Express)", stage4Duration, false});
             std::cerr << "\n❌ PIPELINE FAILED at Stage 4 (Documentation)\n";
             std::cerr << "Error details: " << documentation << "\n";
+            std::cerr << "Time spent: " << std::fixed << std::setprecision(2) << stage4Duration << " seconds\n";
+            printTimingSummary();
             return false;
         }
+        timings.push_back({"Documentation (Titan Express)", stage4Duration, true});
         std::cout << "\n=== DOCUMENTATION ===\n" << documentation << "\n\n";
-        std::cout << "✅ Stage 4 completed successfully\n\n";
+        std::cout << "✅ Stage 4 completed successfully in " << std::fixed << std::setprecision(2) << stage4Duration << " seconds\n\n";
+        
+        // Calculate total time
+        auto pipelineEnd = std::chrono::high_resolution_clock::now();
+        double totalDuration = std::chrono::duration<double>(pipelineEnd - pipelineStart).count();
         
         std::cout << "\n" << std::string(50, '=') << "\n";
         std::cout << "✅ PIPELINE COMPLETE - 4 AGENTS COLLABORATED\n";
@@ -263,7 +306,32 @@ public:
         std::cout << "[DONE] Documentation written by Titan Express\n";
         std::cout << std::string(50, '=') << "\n";
         
+        // Print timing summary
+        printTimingSummary();
+        std::cout << "Total Pipeline Time: " << std::fixed << std::setprecision(2) << totalDuration << " seconds\n";
+        std::cout << std::string(50, '=') << "\n";
+        
         return true;
+    }
+    
+    void printTimingSummary() {
+        std::cout << "\n📊 TIMING SUMMARY\n";
+        std::cout << std::string(50, '-') << "\n";
+        double totalTime = 0.0;
+        
+        for (const auto& timing : timings) {
+            std::cout << std::left << std::setw(35) << timing.stageName << ": ";
+            std::cout << std::right << std::setw(8) << std::fixed << std::setprecision(2) << timing.durationSeconds << " sec ";
+            if (timing.success) {
+                std::cout << "✅";
+            } else {
+                std::cout << "❌";
+            }
+            std::cout << "\n";
+            totalTime += timing.durationSeconds;
+        }
+        
+        std::cout << std::string(50, '-') << "\n";
     }
 };
 

@@ -2,9 +2,9 @@
   "name": "ai-agent-chaining-node",
   "version": "1.0.0",
   "description": "Node.js implementation of AI agent chaining with AWS Bedrock",
-  "main": "game_development_pipeline.js",
+  "main": "game_pipeline.js",
   "scripts": {
-    "start": "node game_development_pipeline.js"
+    "start": "node game_pipeline.js"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.0.0",

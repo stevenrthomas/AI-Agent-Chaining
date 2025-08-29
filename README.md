@@ -16,6 +16,7 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 - **Node.js** - Using AWS SDK for JavaScript/TypeScript environments  
 - **C++** - Native AWS SDK integration for high-performance scenarios
 - **Go** - Using AWS SDK for Go v2 with context management
+- **Java** - Using AWS SDK for Java v2 with async processing
 
 ### 📋 **Planned** (See [TODO.md](TODO.md))
 - **Go** - Cloud-native with concurrent processing
@@ -33,13 +34,15 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 ├── bedrock_models.py             # List available Bedrock models
 ├── model_chaining.py             # Basic 2-model chaining example
 ├── simple_chaining_demo.py       # Simulation without API calls
-├── game_development_pipeline.py  # Python: 4-agent game development workflow
-├── game_development_pipeline.js  # Node.js: 4-agent pipeline implementation
+├── game_pipeline.py              # Python: 4-agent game development workflow
+├── game_pipeline.js              # Node.js: 4-agent pipeline implementation
 ├── game_pipeline.cpp             # C++: High-performance pipeline implementation
 ├── game_pipeline.go              # Go: Cloud-native pipeline implementation
+├── game_pipeline.java            # Java: Enterprise pipeline implementation
 ├── package.json                  # Node.js dependencies
 ├── CMakeLists.txt                # CMake build configuration for C++
 ├── go.mod                        # Go module dependencies
+├── pom.xml                       # Maven dependencies for Java
 ├── requirements.txt              # Python dependencies
 ├── TODO.md                       # Planned language implementations
 └── .env.example                  # Environment variables template
@@ -58,6 +61,11 @@ This project demonstrates AI agent chaining using AWS Bedrock models with both P
 ### Python Setup
 ```bash
 pip install -r requirements.txt
+```
+
+### Java Setup (Optional)
+```bash
+mvn compile
 ```
 
 ### Go Setup (Optional)
@@ -101,14 +109,21 @@ python advanced_chaining.py
 
 **Game Development Pipeline:**
 ```bash
-python game_development_pipeline.py
+python game_pipeline.py
 ```
 
 ### Node.js Examples
 
 **Game Development Pipeline:**
 ```bash
-node game_development_pipeline.js
+node game_pipeline.js
+```
+
+### Java Examples
+
+**Game Development Pipeline:**
+```bash
+mvn exec:java
 ```
 
 ### Go Examples
@@ -127,7 +142,14 @@ python simple_chaining_demo.py
 
 ```bash
 npm install
-node game_development_pipeline.js
+node game_pipeline.js
+```
+
+### Java Implementation
+
+```bash
+mvn compile
+mvn exec:java
 ```
 
 ### Go Implementation

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
-	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/types"
 	"github.com/joho/godotenv"
 )
 
@@ -35,99 +35,248 @@ func NewBedrockAgent(client *bedrockruntime.Client, modelID, systemPrompt string
 	}
 }
 
-func (agent *BedrockAgent) Run(ctx context.Context, userInput string) (string, error) {
-	messages := []types.Message{
-		{
-			Role: types.ConversationRoleUser,
-			Content: []types.ContentBlock{
-				&types.ContentBlockMemberText{
-					Value: userInput,
-				},
-			},
-		},
-	}
-
-	input := &bedrockruntime.ConverseInput{
-		ModelId:  aws.String(agent.modelID),
-		Messages: messages,
-	}
-
-	if agent.systemPrompt != "" {
-		input.System = []types.SystemContentBlock{
-			&types.SystemContentBlockMemberText{
-				Value: agent.systemPrompt,
-			},
-		}
-	}
-
-	result, err := agent.client.Converse(ctx, input)
-	if err != nil {
-		return "", fmt.Errorf("bedrock API error: %w", err)
-	}
-
-	if result.Output == nil || result.Output.Message == nil || len(result.Output.Message.Content) == 0 {
-		return "", fmt.Errorf("empty response from model")
-	}
-
-	if textBlock, ok := result.Output.Message.Content[0].(*types.ContentBlockMemberText); ok {
-		return textBlock.Value, nil
-	}
-
-	return "", fmt.Errorf("unexpected response format")
+type ClaudeRequest struct {
+	AnthropicVersion string                 `json:"anthropic_version"`
+	MaxTokens        int                    `json:"max_tokens"`
+	System           string                 `json:"system,omitempty"`
+	Messages         []ClaudeMessage        `json:"messages"`
 }
 
-func printTimingSummary(timings []StageResult, totalTime time.Duration) {
-	fmt.Println("\n📊 TIMING SUMMARY")
-	fmt.Println(strings.Repeat("-", 50))
+type ClaudeMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
 
-	for _, timing := range timings {
-		status := "✅"
-		if !timing.Success {
-			status = "❌"
+type ClaudeResponse struct {
+	Content []ClaudeContent `json:"content"`
+}
+
+type ClaudeContent struct {
+	Text string `json:"text"`
+	Type string `json:"type"`
+}
+
+type TitanRequest struct {
+	InputText              string                    `json:"inputText"`
+	TextGenerationConfig   TitanGenerationConfig    `json:"textGenerationConfig"`
+}
+
+type TitanGenerationConfig struct {
+	MaxTokenCount int     `json:"maxTokenCount"`
+	Temperature   float64 `json:"temperature"`
+}
+
+type TitanResponse struct {
+	OutputText string `json:"outputText"`
+}
+
+type NovaRequest struct {
+	Messages []NovaMessage `json:"messages"`
+	System   []NovaSystem  `json:"system,omitempty"`
+}
+
+type NovaSystem struct {
+	Text string `json:"text"`
+}
+
+type NovaMessage struct {
+	Role    string        `json:"role"`
+	Content []NovaContent `json:"content"`
+}
+
+type NovaContent struct {
+	Text string `json:"text"`
+}
+
+type NovaResponse struct {
+	Content []NovaResponseContent `json:"content"`
+}
+
+type NovaResponseContent struct {
+	Text string `json:"text"`
+}
+
+func (agent *BedrockAgent) Run(ctx context.Context, userInput string) (string, error) {
+	var requestBody []byte
+	var err error
+
+	if strings.Contains(agent.modelID, "anthropic.claude") {
+		req := ClaudeRequest{
+			AnthropicVersion: "bedrock-2023-05-31",
+			MaxTokens:        4000,
+			Messages: []ClaudeMessage{
+				{
+					Role:    "user",
+					Content: userInput,
+				},
+			},
 		}
-		fmt.Printf("%-35s: %8.2f sec %s\n", timing.Name, timing.Duration.Seconds(), status)
+		if agent.systemPrompt != "" {
+			req.System = agent.systemPrompt
+		}
+		requestBody, err = json.Marshal(req)
+	} else if strings.Contains(agent.modelID, "amazon.titan") {
+		req := TitanRequest{
+			InputText: userInput,
+			TextGenerationConfig: TitanGenerationConfig{
+				MaxTokenCount: 4000,
+				Temperature:   0.7,
+			},
+		}
+		requestBody, err = json.Marshal(req)
+	} else if strings.Contains(agent.modelID, "amazon.nova") {
+		// Nova Lite uses messages format without max_tokens
+		req := NovaRequest{
+			Messages: []NovaMessage{
+				{
+					Role: "user",
+					Content: []NovaContent{
+						{Text: userInput},
+					},
+				},
+			},
+		}
+		if agent.systemPrompt != "" {
+			req.System = []NovaSystem{{Text: agent.systemPrompt}}
+		}
+		requestBody, err = json.Marshal(req)
 	}
 
+	if err != nil {
+		return "", fmt.Errorf("error marshaling request: %w", err)
+	}
+
+	input := &bedrockruntime.InvokeModelInput{
+		ModelId:     aws.String(agent.modelID),
+		ContentType: aws.String("application/json"),
+		Body:        requestBody,
+	}
+
+	result, err := agent.client.InvokeModel(ctx, input)
+	if err != nil {
+		return "", fmt.Errorf("error calling Bedrock: %w", err)
+	}
+
+	// Parse response based on model type
+	if strings.Contains(agent.modelID, "anthropic.claude") {
+		var response ClaudeResponse
+		err = json.Unmarshal(result.Body, &response)
+		if err != nil {
+			return "", fmt.Errorf("error unmarshaling Claude response: %w", err)
+		}
+		if len(response.Content) > 0 {
+			return response.Content[0].Text, nil
+		}
+	} else if strings.Contains(agent.modelID, "amazon.titan") {
+		var response TitanResponse
+		err = json.Unmarshal(result.Body, &response)
+		if err != nil {
+			return "", fmt.Errorf("error unmarshaling Titan response: %w", err)
+		}
+		return response.OutputText, nil
+	} else if strings.Contains(agent.modelID, "amazon.nova") {
+		// Nova Lite returns content similar to Claude
+		var response NovaResponse
+		err = json.Unmarshal(result.Body, &response)
+		if err != nil {
+			return "", fmt.Errorf("error unmarshaling Nova response: %w", err)
+		}
+		if len(response.Content) > 0 {
+			return response.Content[0].Text, nil
+		}
+	}
+
+	return "", fmt.Errorf("no content in response")
+}
+
+func printTimingSummary(results []StageResult, totalTime time.Duration) {
+	fmt.Println("\n📊 TIMING SUMMARY")
+	fmt.Println(strings.Repeat("-", 50))
+	
+	for _, result := range results {
+		status := "✅"
+		if !result.Success {
+			status = "❌"
+		}
+		fmt.Printf("%-35s: %8.2f sec %s\n", result.Name, result.Duration.Seconds(), status)
+	}
+	
 	fmt.Println(strings.Repeat("-", 50))
 	fmt.Printf("Total Pipeline Time: %.2f seconds\n", totalTime.Seconds())
 	fmt.Println(strings.Repeat("=", 50))
 }
 
-func gameDevelopmentPipeline(ctx context.Context, client *bedrockruntime.Client) error {
-	projectRequest := "Create a simple Tic-Tac-Toe (X&Os) game in Python"
-	pipelineStart := time.Now()
-	var timings []StageResult
+func main() {
+	fmt.Println("AWS Bedrock 4-Agent Pipeline (Go)")
+	fmt.Println("==================================")
+	
+	// Load .env file
+	fmt.Println("Loading .env file...")
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Printf("Warning: Error loading .env file: %v\n", err)
+	} else {
+		fmt.Println("✅ .env file loaded successfully")
+	}
+
+	// Get AWS region
+	region := os.Getenv("AWS_DEFAULT_REGION")
+	if region == "" {
+		region = "us-east-1"
+	}
+	fmt.Printf("Using AWS region: %s\n", region)
+
+	// Check for credentials
+	accessKey := os.Getenv("AWS_ACCESS_KEY_ID")
+	secretKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+	if accessKey != "" && secretKey != "" {
+		fmt.Println("AWS credentials loaded from environment")
+	} else {
+		fmt.Println("Warning: AWS credentials not found in environment")
+	}
+
+	// Load AWS configuration
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		log.Fatalf("unable to load SDK config, %v", err)
+	}
+
+	// Create Bedrock Runtime client
+	client := bedrockruntime.NewFromConfig(cfg)
 
 	// Initialize agents
-	architectAgent := NewBedrockAgent(client, "anthropic.claude-3-sonnet-20240229-v1:0",
+	architectAgent := NewBedrockAgent(client, "anthropic.claude-3-sonnet-20240229-v1:0", 
 		"You are a software architect. Create detailed technical specifications and architecture for software projects.")
 	developerAgent := NewBedrockAgent(client, "anthropic.claude-3-haiku-20240307-v1:0",
 		"You are a Python developer. Write clean, functional code based on specifications.")
-	testerAgent := NewBedrockAgent(client, "amazon.nova-lite-v1:0",
+	testerAgent := NewBedrockAgent(client, "anthropic.claude-3-haiku-20240307-v1:0",
 		"You are a QA engineer. Create comprehensive tests for code to ensure it works correctly.")
 	documenterAgent := NewBedrockAgent(client, "amazon.titan-text-express-v1", "")
 
+	fmt.Println("\nStarting 4-Agent Game Development Pipeline...")
+	
+	ctx := context.Background()
+	pipelineStart := time.Now()
+	var results []StageResult
+
+	projectRequest := "Create a simple Tic-Tac-Toe (X&Os) game in Python"
+
 	// Stage 1: Architecture
-	fmt.Println("[1/4] Creating architecture with Claude Sonnet...")
+	fmt.Println("\n[1/4] Creating architecture with Claude Sonnet...")
 	stage1Start := time.Now()
 	architecture, err := architectAgent.Run(ctx, fmt.Sprintf("Create a detailed architecture and rulebook for: %s", projectRequest))
 	stage1Duration := time.Since(stage1Start)
 
 	if err != nil {
-		timings = append(timings, StageResult{"Architecture (Claude Sonnet)", stage1Duration, false})
+		results = append(results, StageResult{"Architecture (Claude Sonnet)", stage1Duration, false})
 		fmt.Printf("\n❌ PIPELINE FAILED at Stage 1 (Architecture)\n")
 		fmt.Printf("Error details: %v\n", err)
 		fmt.Printf("Time spent: %.2f seconds\n", stage1Duration.Seconds())
-		fmt.Println("\nPossible causes:")
-		fmt.Println("1. Network connectivity issue")
-		fmt.Println("2. Invalid AWS credentials")
-		fmt.Printf("3. Model not available in region %s\n", os.Getenv("AWS_DEFAULT_REGION"))
-		fmt.Println("4. Insufficient permissions for Claude Sonnet model")
-		printTimingSummary(timings, stage1Duration)
-		return err
+		printTimingSummary(results, time.Since(pipelineStart))
+		return
 	}
 
-	timings = append(timings, StageResult{"Architecture (Claude Sonnet)", stage1Duration, true})
+	results = append(results, StageResult{"Architecture (Claude Sonnet)", stage1Duration, true})
 	fmt.Printf("\n=== ARCHITECTURE ===\n%s\n\n", architecture)
 	fmt.Printf("✅ Stage 1 completed successfully in %.2f seconds\n\n", stage1Duration.Seconds())
 
@@ -138,15 +287,15 @@ func gameDevelopmentPipeline(ctx context.Context, client *bedrockruntime.Client)
 	stage2Duration := time.Since(stage2Start)
 
 	if err != nil {
-		timings = append(timings, StageResult{"Development (Claude Haiku)", stage2Duration, false})
+		results = append(results, StageResult{"Development (Claude Haiku)", stage2Duration, false})
 		fmt.Printf("\n❌ PIPELINE FAILED at Stage 2 (Development)\n")
 		fmt.Printf("Error details: %v\n", err)
 		fmt.Printf("Time spent: %.2f seconds\n", stage2Duration.Seconds())
-		printTimingSummary(timings, time.Since(pipelineStart))
-		return err
+		printTimingSummary(results, time.Since(pipelineStart))
+		return
 	}
 
-	timings = append(timings, StageResult{"Development (Claude Haiku)", stage2Duration, true})
+	results = append(results, StageResult{"Development (Claude Haiku)", stage2Duration, true})
 	fmt.Printf("\n=== CODE ===\n%s\n\n", code)
 	fmt.Printf("✅ Stage 2 completed successfully in %.2f seconds\n\n", stage2Duration.Seconds())
 
@@ -157,15 +306,15 @@ func gameDevelopmentPipeline(ctx context.Context, client *bedrockruntime.Client)
 	stage3Duration := time.Since(stage3Start)
 
 	if err != nil {
-		timings = append(timings, StageResult{"Testing (Nova Lite)", stage3Duration, false})
+		results = append(results, StageResult{"Testing (Nova Lite)", stage3Duration, false})
 		fmt.Printf("\n❌ PIPELINE FAILED at Stage 3 (Testing)\n")
 		fmt.Printf("Error details: %v\n", err)
 		fmt.Printf("Time spent: %.2f seconds\n", stage3Duration.Seconds())
-		printTimingSummary(timings, time.Since(pipelineStart))
-		return err
+		printTimingSummary(results, time.Since(pipelineStart))
+		return
 	}
 
-	timings = append(timings, StageResult{"Testing (Nova Lite)", stage3Duration, true})
+	results = append(results, StageResult{"Testing (Nova Lite)", stage3Duration, true})
 	fmt.Printf("\n=== TESTS ===\n%s\n\n", tests)
 	fmt.Printf("✅ Stage 3 completed successfully in %.2f seconds\n\n", stage3Duration.Seconds())
 
@@ -177,20 +326,20 @@ func gameDevelopmentPipeline(ctx context.Context, client *bedrockruntime.Client)
 	stage4Duration := time.Since(stage4Start)
 
 	if err != nil {
-		timings = append(timings, StageResult{"Documentation (Titan Express)", stage4Duration, false})
+		results = append(results, StageResult{"Documentation (Titan Express)", stage4Duration, false})
 		fmt.Printf("\n❌ PIPELINE FAILED at Stage 4 (Documentation)\n")
 		fmt.Printf("Error details: %v\n", err)
 		fmt.Printf("Time spent: %.2f seconds\n", stage4Duration.Seconds())
-		printTimingSummary(timings, time.Since(pipelineStart))
-		return err
+		printTimingSummary(results, time.Since(pipelineStart))
+		return
 	}
 
-	timings = append(timings, StageResult{"Documentation (Titan Express)", stage4Duration, true})
+	results = append(results, StageResult{"Documentation (Titan Express)", stage4Duration, true})
 	fmt.Printf("\n=== DOCUMENTATION ===\n%s\n\n", documentation)
 	fmt.Printf("✅ Stage 4 completed successfully in %.2f seconds\n\n", stage4Duration.Seconds())
 
-	// Calculate total time
-	totalDuration := time.Since(pipelineStart)
+	// Print final results
+	totalTime := time.Since(pipelineStart)
 
 	fmt.Println("\n" + strings.Repeat("=", 50))
 	fmt.Println("✅ PIPELINE COMPLETE - 4 AGENTS COLLABORATED")
@@ -201,44 +350,7 @@ func gameDevelopmentPipeline(ctx context.Context, client *bedrockruntime.Client)
 	fmt.Println("[DONE] Documentation written by Titan Express")
 	fmt.Println(strings.Repeat("=", 50))
 
-	// Print timing summary
-	printTimingSummary(timings, totalDuration)
-
-	return nil
-}
-
-func main() {
-	// Load .env file
-	if err := godotenv.Load(); err != nil {
-		log.Printf("Warning: Could not load .env file: %v", err)
-	}
-
-	fmt.Println("AWS Bedrock 4-Agent Pipeline (Go)")
-	fmt.Println("==================================")
-	fmt.Println("Starting 4-Agent Game Development Pipeline...\n")
-
-	// Get region from environment
-	region := os.Getenv("AWS_DEFAULT_REGION")
-	if region == "" {
-		region = "us-east-1"
-	}
-	fmt.Printf("Using region: %s\n\n", region)
-
-	// Load AWS configuration
-	ctx := context.Background()
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
-	if err != nil {
-		log.Fatalf("Failed to load AWS config: %v", err)
-	}
-
-	// Create Bedrock client
-	client := bedrockruntime.NewFromConfig(cfg)
-
-	// Run the pipeline
-	if err := gameDevelopmentPipeline(ctx, client); err != nil {
-		fmt.Printf("\n❌ Pipeline failed with error: %v\n", err)
-		os.Exit(1)
-	}
+	printTimingSummary(results, totalTime)
 
 	fmt.Println("\n🚀 Go Implementation Complete!")
 }
